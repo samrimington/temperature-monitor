@@ -1,0 +1,13 @@
+#:kivy 1.11.1
+
+<HomeDisplay>:
+    orientation: "vertical"
+
+    Label:
+        text: "Outdoor: " + root.outdoorTemperature
+
+    Label:
+        text: "Upstairs: " + root.upstairsTemperature + " " + root.upstairsHumidity
+
+    Label:
+        text: "Downstairs:" + root.downstairsTemperature + " " + root.downstairsHumidity
