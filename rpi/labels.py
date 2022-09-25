@@ -1,0 +1,2 @@
+DOWNSTAIRS="esp"
+UPSTAIRS="rpi"

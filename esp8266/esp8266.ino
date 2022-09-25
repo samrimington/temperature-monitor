@@ -3,20 +3,26 @@
 #include <ESP8266WiFi.h>
 #include <OneWire.h>
 #include <PubSubClient.h>
+
 #include "secrets.h"
 
 #define DHT22_PORT 5
 #define DS18B20_PORT 4
+#define BUZZER_PORT 14
 
-#define INDOOR_TEMPERATURE_TOPIC "indoor/upstairs/temperature"
-#define INDOOR_HUMIDITY_TOPIC "indoor/upstairs/humidity"
-#define OUTDOOR_TEMPERATURE_TOPIC "outdoor/temperature"
+#define INDOOR_TEMPERATURE_TOPIC "esp/indoor/temperature"
+#define INDOOR_HUMIDITY_TOPIC "esp/indoor/humidity"
+#define OUTDOOR_TEMPERATURE_TOPIC "esp/outdoor/temperature"
 
 #define VALUE_UNIT_JSON "{\"value\":%.1f,\"unit\":\"%s\"}"
 #define TEMPERATURE_UNIT "degC"
 #define HUMIDITY_UNIT "percent"
 
 #define BUF_SIZE 128
+
+#define F0 396
+#define D1 594
+#define F1 792
 
 DHT indoor(DHT22_PORT, DHT22);
 OneWire oneWire(DS18B20_PORT);
@@ -26,8 +32,31 @@ PubSubClient mqtt(client);
 
 char buf[BUF_SIZE];
 
+void onSound()
+{
+    tone(BUZZER_PORT, F0);
+    delay(150);
+    tone(BUZZER_PORT, D1);
+    delay(150);
+    tone(BUZZER_PORT, F1);
+    delay(150);
+    noTone(BUZZER_PORT);
+}
+
+void okSound()
+{
+    tone(BUZZER_PORT, F1);
+    delay(100);
+    noTone(BUZZER_PORT);
+    delay(20);
+    tone(BUZZER_PORT, F1);
+    delay(100);
+    noTone(BUZZER_PORT);
+}
+
 void setup()
 {
+    pinMode(14, OUTPUT);
     Serial.begin(115200);
     indoor.begin();
     outdoor.begin();
@@ -42,9 +71,13 @@ void setup()
     Serial.println();
     Serial.print("Connected to Wifi, IP address: ");
     Serial.println(WiFi.localIP());
+    onSound();
+    delay(500);
 
     mqtt.setServer(MQTT_SERVER, MQTT_PORT);
     mqtt.connect("esp8266");
+    if (mqtt.connected())
+        okSound();
 }
 
 void reconnect()
@@ -56,6 +89,7 @@ void reconnect()
         {
             Serial.println();
             Serial.println("Connected to MQTT broker");
+            okSound();
         }
         else
         {
@@ -66,12 +100,12 @@ void reconnect()
             Serial.println("Trying again in 5 seconds");
             delay(5000);
         }
-        }
+    }
 }
 
 void loop()
 {
-    if (!client.connected())
+    if (!mqtt.connected())
         reconnect();
     mqtt.loop();
     delay(2000);
@@ -88,5 +122,5 @@ void loop()
         mqtt.publish(OUTDOOR_TEMPERATURE_TOPIC, buf, true);
     }
     outdoor.requestTemperatures();
-    delay(10000);
+    delay(5000);
 }
